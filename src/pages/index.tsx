@@ -1,8 +1,9 @@
+import LoginComponent from 'components/LoginComponent';
 import { NextPage } from 'next';
-import HomeTemplate from 'template/Home';
+import React from 'react';
 
 const Home: NextPage = () => {
-    return <HomeTemplate />;
+    return <LoginComponent />;
 };
 
 export default Home;
