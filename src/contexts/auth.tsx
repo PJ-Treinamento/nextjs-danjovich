@@ -1,22 +1,23 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect } from 'react';
 import Router from 'next/router';
-// import { GetServerSideProps } from "next";
 
 import CircularProgress from '@material-ui/core/CircularProgress';
 import { AxiosResponse } from "axios";
-import { setCookie, parseCookies } from 'nookies';
+import { setCookie, parseCookies, destroyCookie } from 'nookies';
 
-import api from '../services/api';
+import api from 'services/api';
+import orderPiusByDate from 'utils/orderPiusByDate';
 
-import { Piu, PiuTagProps } from "../components/Piu";
-import { User } from "../components/User";
+import { Piu } from 'components/Piu';
+import { User } from 'components/User';
+
+import { LoadingDiv } from 'styles';
 
 interface AuthContextData {
     isUserAuthenticated: boolean;
     user: User | null;
     users: User[];
     pius: Piu[];
-    loadingInPage: boolean;
     logIn(email: string, password: string): Promise<void>;
     logOut(): void;
     getPius(): Promise<void>;
@@ -30,45 +31,51 @@ const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 export const AuthProvider: React.FC = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [loadingInPage, setLoadingInPage] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [pius, setPius] = useState<Piu[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
 
     useEffect(() => {
-        const { 'piupiuwer.token': localToken, 'piupiuwer.username': username } = parseCookies();
+        const cookies = parseCookies();
+        const localToken = cookies['piupiuwer.token'];
+        const username = cookies['piupiuwer.username'];
 
         if (localToken && username) {
-            api.defaults.headers.authorization = `Bearer ${localToken}`;
-            recoverUserInfromation(username).then((response) => {
-                setUser(response);
-                setToken(localToken);
+            recoverUserInformation(username).then((response) => {
+                setUser(response.data[0]);
             }).catch((error) => console.log(error));
+        } else {
+            setLoading(false);
         }
-
     }, []);
 
-    useEffect(() => {
-        api.defaults.headers.authorization = `Bearer ${token}`;
-    }, [token]);
+    async function recoverUserInformation(username: string) {
+        const response = await api.get(`users?username=${username}`);
+        getPius();
+        getUsers(response.data[0].id);
+        return response;
+    }
 
     async function logIn(email: string, password: string) {
         const response = await api.post('/sessions/login', {
             email: email,
             password: password
         });
-        setUser(response.data.user);
-        setToken(response.data.token);
 
+        setLoading(true);
+        
         setCookie(undefined, 'piupiuwer.token', response.data.token, {
             maxAge: 60 * 60 * 24, // 24 horas
+            path: '/',
         });
         setCookie(undefined, 'piupiuwer.username', response.data.user.username, {
             maxAge: 60 * 60 * 24, // 24 horas
+            path: '/',
         });
+        
+        setUser(response.data.user);
 
         api.defaults.headers.authorization = `Bearer ${response.data.token}`;
-
-        setLoading(true);
 
         getPius().catch((error) => {
             console.log(error);
@@ -79,17 +86,12 @@ export const AuthProvider: React.FC = ({ children }) => {
         Router.push('/feed');
     }
 
-    async function recoverUserInfromation(username: string) {
-        const response = await api.get(`users?username=${username}`);
-        return response.data.users[0];
-    }
-
     async function logOut() {
         setUser(null);
-        setToken('');
+        destroyCookie(undefined, 'piupiuwer.token');
+        destroyCookie(undefined, 'piupiuwer.username');
     }
 
-    const [pius, setPius] = useState<Piu[]>([]);
     async function getPius() {
         const response = await api.get('pius');
         const data = response.data;
@@ -98,26 +100,16 @@ export const AuthProvider: React.FC = ({ children }) => {
         for (const piu of data) {
             piusArray.push(piu);
         }
-        piusArray = orderByDate(piusArray);
-        // let piuTagsArray: PiuTagProps[];
-        // piuTagsArray = [];
-        // for (const piu of piusArray) {
-        //     let piuTag: PiuTagProps;
-        //     piuTag = {
-        //         piu: piu
-        //     }
-        //     piuTagsArray.push(piuTag);
-        // }
+        piusArray = orderPiusByDate(piusArray);
         setPius(piusArray);
-        setLoading(false);
-        setLoadingInPage(false);
     }
 
     async function publishPiu(text: string) {
+        console.log(text);
+
         await api.post('pius', {
             text: text
         }).then(() => {
-            setLoadingInPage(true);
             getPius();
         }).catch((error) => {
             console.log(error);
@@ -129,7 +121,6 @@ export const AuthProvider: React.FC = ({ children }) => {
         await api.delete('pius', {
             data: { piu_id: piu_id }
         }).then(() => {
-            setLoadingInPage(true);
             getPius();
         }).catch((error) => {
             console.log(error);
@@ -137,25 +128,20 @@ export const AuthProvider: React.FC = ({ children }) => {
     }
 
     async function likePiu(piu_id: string) {
-        setLoadingInPage(true);
         const response = await api.post('pius/like', {
             piu_id: piu_id
         });
-        setLoadingInPage(false);
         return response;
     }
 
     async function favoritePiu(piu_id: string, alreadyFavorite: boolean) {
-        setLoadingInPage(true);
         let favoriteOrUnfavorite = alreadyFavorite ? 'unfavorite' : 'favorite';
         const response = await api.post(`pius/${favoriteOrUnfavorite}`, {
             piu_id: piu_id
         });
-        setLoadingInPage(false);
         return response;
     }
 
-    const [users, setUsers] = useState<User[]>([]);
     async function getUsers(currentUserId: string) {
         await api.get('users').then((response) => {
             let allUsers = response.data;
@@ -166,13 +152,14 @@ export const AuthProvider: React.FC = ({ children }) => {
         }).catch((error) => {
             console.log(error);
         });
+        setLoading(false);
     }
 
     if (loading) {
         return (
-            <div style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingDiv>
                 <CircularProgress />
-            </div>
+            </LoadingDiv>
         );
     }
 
@@ -182,7 +169,6 @@ export const AuthProvider: React.FC = ({ children }) => {
             user: user,
             users: users,
             pius: pius,
-            loadingInPage: loadingInPage,
             logIn: logIn, 
             logOut: logOut,
             getPius: getPius,
@@ -198,40 +184,3 @@ export const AuthProvider: React.FC = ({ children }) => {
 };
 
 export default AuthContext;
-
-const orderByDate = (piusArray: Piu[]) => {
-    type Tuple = [Piu, Date];
-
-    let sortable: Tuple[];
-    sortable = [];
-    for (const piu of piusArray) {
-        sortable.push([piu, piu.created_at]);
-    }
-    sortable.sort(function (a, b) {
-        return Number(a[1]) - Number(b[1]);
-    });
-
-    let result = [];
-    for (const tuple of sortable) {
-        result.push(tuple[0]);
-    }
-    return result;
-}
-
-// export const getServerSideProps: GetServerSideProps = async (ctx) => {
-//     const { ['piupiuwer.token']: token } = parseCookies(ctx)
-
-//     if (!token) {
-//         return {
-//             redirect: {
-//                 destination: '/',
-//                 permanent: false
-//             }
-//         }
-//     }
-
-//     return {
-//         props: {}
-//     }
-
-// }

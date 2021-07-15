@@ -9,6 +9,7 @@ export const theme = {
         blue: '#0053A0',
         lightBlue: '#2471A3',
         link: '#0101E8',
-        error: '#ff5733'
+        error: '#ff5733',
+        icons: '#3f3f3f'
     }
 };

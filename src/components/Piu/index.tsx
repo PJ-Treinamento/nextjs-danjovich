@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 
-import { User } from "../User";
 import formatedDate from "utils/formatedDate";
+import AuthContext from "contexts/auth";
+import { User } from "../User";
 
-import like from "assets/images/like.svg";
-import liked from "assets/images/liked.svg";
-import favoriteSymbol from "assets/images/favoritado.svg";
-import notFavoriteSymbol from "assets/images/favoritar.svg";
-import deleteImage from "assets/images/deletar.svg";
-import genericUserPhoto from "assets/images/perfil.svg";
+import { AiOutlineHeart, AiFillHeart, AiOutlineStar, AiFillStar } from 'react-icons/ai';
+
+import deleteImage from "assets/images/deletar.png";
+import genericUserPhoto from "assets/images/perfil.png";
 
 import { PiuLi } from "./styles";
 
@@ -32,17 +31,51 @@ export interface PiuTagProps {
 }
 
 const PiuTag: React.FC<PiuTagProps> = ({ piu }) => { 
+    const { user, deletePiu, likePiu, favoritePiu } = useContext(AuthContext);
     const [currentUserPiu, setCurrentUserPiu] = useState(false);
     const [likedByCurrentUser, setLikedByCurrentUser] = useState(false);
     const [numberOfLikes, setNumberOfLikes] = useState(piu.likes.length);
-    const [favoritePiu, setFavoritePiu] = useState(false);
-    const [deletedPiu, setDeletedPiu] = useState(false);
+    const [favorite, setFavorite] = useState(false);
+
+    useEffect(() => {
+        if (user!.id === piu.user.id) setCurrentUserPiu(true);
+        for (const piuLike of piu.likes) {
+            if (piuLike.user.id === user?.id) {
+                setLikedByCurrentUser(true);
+            }
+        }
+        for (const favoritePiu of user?.favorites!) {
+            if (favoritePiu.id === piu.id) setFavorite(true);
+        }
+    }, []);
+
+    const handleLikePiu = () => {
+        likePiu(piu.id).then((response) => {
+            setNumberOfLikes(likedByCurrentUser
+                ? numberOfLikes - 1
+                : numberOfLikes + 1);
+            setLikedByCurrentUser(!likedByCurrentUser);
+        }).catch((error) => {
+            console.log(error);
+        });
+    }
+
+    const handleFavoritePiu = () => {
+        setFavorite(!favorite);
+        favoritePiu(piu.id, favorite).catch((error) => {
+            console.log(error);
+        });
+    }
+
+    const handleDetletePiu = () => {
+        deletePiu(piu.id);
+    }
 
     return (
-        <PiuLi deletedPiu={deletedPiu}>
+        <PiuLi>
             <div className="info">
                 <div className="square">
-                    <img src={piu.user.photo === '' ? genericUserPhoto : piu.user.photo} alt="Foto de Perfil" />
+                    <img src={piu.user.photo === '' ? genericUserPhoto.src : piu.user.photo} alt="Foto de Perfil" />
                 </div>
                 <div className="name-and-username">
                     <strong>{piu.user.first_name} {piu.user.last_name} <span>@{piu.user.username} · {formatedDate(new Date(String(piu.updated_at)))}</span></strong>
@@ -51,11 +84,21 @@ const PiuTag: React.FC<PiuTagProps> = ({ piu }) => {
             <p>{piu.text}</p>
             <div className="interactions">
                 <div>
-                    <img src={likedByCurrentUser ? liked : like} alt="Like" className="like" />
+                    {likedByCurrentUser 
+                        ? <AiFillHeart onClick={handleLikePiu} color="#C70039" />
+                        : <AiOutlineHeart onClick={handleLikePiu} />}
                     <span>{numberOfLikes}</span>
                 </div>
-                <img src={favoritePiu ? favoriteSymbol : notFavoriteSymbol} alt="Favoritar" />
-                {currentUserPiu && <img src={deleteImage} alt="Deletar" className="delete" />}
+                {favorite 
+                    ? <AiFillStar onClick={handleFavoritePiu} color="#FFC300" />
+                    : <AiOutlineStar onClick={handleFavoritePiu} />}
+                {currentUserPiu && 
+                <img 
+                    src={deleteImage.src} 
+                    alt="Deletar" 
+                    className="delete" 
+                    onClick={handleDetletePiu}
+                />}
             </div>
         </PiuLi>
     )

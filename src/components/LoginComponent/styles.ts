@@ -80,12 +80,12 @@ export const ErrorMessage = styled.p`
     color: ${({ theme }) => theme.colors.error};
 `
 
-export const NonSubmitStyledButton = styled.button`
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    margin-top: 2.5%;
-    margin-bottom: -3%;
-    color: ${({ theme }) => theme.colors.link};
+// export const NonSubmitStyledButton = styled.button`
+//     background: transparent;
+//     border: none;
+//     cursor: pointer;
+//     margin-top: 2.5%;
+//     margin-bottom: -3%;
+//     color: ${({ theme }) => theme.colors.link};
     
-`
+// `

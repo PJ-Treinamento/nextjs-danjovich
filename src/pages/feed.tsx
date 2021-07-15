@@ -1,35 +1,43 @@
-import React, { useContext, useState } from 'react';
-import { NextPage } from 'next';
+import React, { useContext, useState, useEffect, FormEvent } from 'react';
+import { GetServerSideProps, NextPage } from 'next';
+
+import { parseCookies } from 'nookies';
 
 import AuthContext from 'contexts/auth';
 import Pius from 'components/Pius';
+// import { getApiClient } from 'services/axios';
 
 import Logo from 'components/Logo';
-import { Piu } from "components/Piu";
-// import { PiuTagProps } from 'components/Piu';
 import UserTag, { User } from 'components/User';
+import { Piu } from 'components/Piu';
 
-import feedImage from 'assets/images/feed.svg';
-import exitImage from 'assets/images/sair.svg';
-import filterImage from 'assets/images/filtro.svg';
+import { IoIosMusicalNotes } from 'react-icons/io';
+import { ImExit } from 'react-icons/im';
+import { MdTune } from 'react-icons/md';
 
 import { Aside, NewPiu, PageDiv, Sticky, StyledHeader, StyledSection } from 'styles/Feed';
 
-const Feed: NextPage = () => {
-    const { pius, publishPiu } = useContext(AuthContext);
+const Feed: NextPage = (/*props*/) => {
+    const { pius, publishPiu, user, users, logOut } = useContext(AuthContext);
 
     const [filteredPius, setFilteredPius] = useState<Piu[]>(pius);
-    const [currentUser, setCurrentUser] = useState<User>();
-    const [currentUserFound, setCourrentUserFound] = useState(false);
-    const [users, setUsers] = useState<User[]>();
-
     const [viewFilter, setViewFilter] = useState(false);
+    const [filterOption, setFilterOption] = useState('users');
+    const [searchContent, setSearchContent] = useState('');
+    const [newPiu, setNewPiu] = useState('');
+    const [publishingDisabled, setPublishingDisabled] = useState(true);
+    const [lengthSize, setLengthSize] = useState('');
+
+    useEffect(() => {
+        setFilteredPius(pius);
+        if (searchContent.length > 0) {
+            search(searchContent);
+        }
+    }, [pius]);
+
     const changeFilterVisibilty = () => {
         setViewFilter(!viewFilter);
     }
-
-    const [filterOption, setFilterOption] = useState('users');
-    const [searchContent, setSearchContent] = useState('');
 
     const filterSearch = (newFilterOption: any) => {
         setFilterOption(newFilterOption.value);
@@ -54,26 +62,31 @@ const Feed: NextPage = () => {
         setFilteredPius(filteringPius);
     }
 
-    const [newPiu, setNewPiu] = useState('');
-    const [publishingDisabled, setPublishingDisabled] = useState(true);
-    const [lengthSize, setLengthSize] = useState('');
     const handleKeyPress = (content: string) => {
         setNewPiu(content);
         const currentLength = content.length;
-        if (currentLength > 0 && currentLength < 140) {
+        const trimmedCurrentLenght = content.trim().length;
+        if (trimmedCurrentLenght > 0 && currentLength < 140) {
             setPublishingDisabled(false);
             setLengthSize('');
         } else if (currentLength >= 140) {
             setPublishingDisabled(true);
             setLengthSize('too-big');
-        } else if (currentLength === 0) {
+        } else if (trimmedCurrentLenght === 0) {
             setPublishingDisabled(true);
             setLengthSize('too-short');
         }
     }
 
-    const handlePublishPiu = () => {
-        publishPiu(newPiu);
+    const handlePublishPiu = (e: FormEvent) => {
+        e.preventDefault();
+
+        publishPiu(newPiu).then(() => {
+            setNewPiu('');
+            setPublishingDisabled(true);
+        }).catch((error) => {
+            console.log(error);
+        });
     }
 
     return (<PageDiv>
@@ -81,8 +94,8 @@ const Feed: NextPage = () => {
                 <Logo to="/feed" />
                 <nav>
                     <ul>
-                        <li><a href="/feed" title="Seu Feed"><img src={feedImage} alt="Feed" id="feed-icon" /> Seu Feed</a></li>
-                        <li><a href="/" title="Sair"><img src={exitImage} alt="Sair" id="exit-icon" /> Sair</a></li>
+                        <li><a href="/feed" title="Seu Feed"><IoIosMusicalNotes /> Seu Feed</a></li>
+                    <li><a href="/" title="Sair" onClick={logOut}><ImExit /> Sair</a></li>
                     </ul>
                 </nav>
             </StyledHeader>
@@ -95,7 +108,7 @@ const Feed: NextPage = () => {
                                     e.preventDefault();
                                     search(e.target.value);
                                 }} />
-                        <img src={filterImage} onClick={changeFilterVisibilty} alt="Filtrar" />
+                        <MdTune onClick={changeFilterVisibilty} />
                     </div>
 
                     {viewFilter &&
@@ -114,22 +127,34 @@ const Feed: NextPage = () => {
 
                 <NewPiu className={lengthSize} onSubmit={handlePublishPiu}>
                         <label htmlFor="new-piu-textarea" id="count">Caracteres: {newPiu.length}/140</label>
-                        <textarea name="new-piu" id="new-piu-textarea" placeholder="Novo piu..."
-                                onChange={(e) => handleKeyPress(e.target.value)}></textarea>
+                        <textarea 
+                            name="new-piu" 
+                            id="new-piu-textarea" 
+                            placeholder="Novo piu..."
+                            onChange={(e) => handleKeyPress(e.target.value)}
+                            value={newPiu}
+                        ></textarea>
                         <div>
-                            <input type="submit" id="publish" className="button" value="Publicar" disabled={publishingDisabled} />
+                            <input 
+                                // onClick={handlePublishPiu}
+                                type="submit" 
+                                id="publish" 
+                                className="button" 
+                                value="Publicar" 
+                                disabled={publishingDisabled} 
+                            />
                         </div>
                 </NewPiu>
 
-                <Pius pius={pius} />
+                <Pius pius={filteredPius} />
             </StyledSection>
 
             <Aside>
                 <h2>Seu Perfil</h2>
-                {currentUserFound && <UserTag user={currentUser!} />}
+                <UserTag user={user!} />
                 <h2>Outros Usuários</h2>
                 {users?.map((user: User) => {
-                    return <UserTag user={user} key={user.id} />
+                    return <UserTag user={user} key={user?.id} />
                 })}
             </Aside>
 
@@ -139,3 +164,21 @@ const Feed: NextPage = () => {
 };
 
 export default Feed;
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+    // const apiClient = getApiClient(ctx);
+    const { ['piupiuwer.token']: token } = parseCookies(ctx);
+
+    if (!token) {
+        return {
+            redirect: {
+                destination: '/',
+                permanent: false
+            }
+        }
+    }
+
+    return {
+        props: {}
+    }
+}

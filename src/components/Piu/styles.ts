@@ -1,11 +1,6 @@
 import styled from "styled-components";
 
-interface liProps {
-    deletedPiu: boolean
-}
-
-export const PiuLi = styled.li<liProps>`
-    display: ${props => props.deletedPiu ? 'none' : 'block'};
+export const PiuLi = styled.li`
     border: 1px solid #6c8193;
     background: #fff;
     margin-top: -1px;
@@ -33,18 +28,20 @@ export const PiuLi = styled.li<liProps>`
         margin: 16px 142px;
     }
 
+    .interactions svg,
     .interactions img {
         width: 24px;
         height: 24px;
         cursor: pointer;
+        color: ${({ theme }) => theme.colors.icons};
     }
 
     .interactions div {
         display: flex;
-        align-content: center;
+        align-items: center;
     }
 
-    .interactions div img {
+    .interactions div svg {
         margin-right: 4px;
     }
 

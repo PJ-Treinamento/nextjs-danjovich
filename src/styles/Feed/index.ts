@@ -1,8 +1,8 @@
 import styled from "styled-components";
-import searchImage from "../../assets/images/buscar.svg";
+import searchImage from "../../assets/images/buscar.png";
 
 export const PageDiv = styled.div`
-    width: 80vw;
+    /* width: 80vw; */
     display: flex;
 
     button,
@@ -92,7 +92,7 @@ export const StyledHeader = styled.header`
         color: #2471A3;
     }
 
-    nav ul li a img {
+    nav ul li a svg {
         width: 40px;
         height: 40px;
         margin-right: 4%;
@@ -242,7 +242,7 @@ export const Sticky = styled.div`
         border-radius: 16px;
         color: #b3b3b3;
         font-size: 16px;
-        background: #fff url(${searchImage}) no-repeat 8px center;
+        background: #fff url(${searchImage.src}) no-repeat 8px center;
         background-size: 25px;
 
         margin-right: 16px;
@@ -252,10 +252,11 @@ export const Sticky = styled.div`
         color: #b3b3b3;
     }
 
-    .searchbar img {
+    .searchbar svg {
         width: 36px;
         height: 36px;
         cursor: pointer;
+        color: ${({ theme }) => theme.colors.icons};
     }
 
     form#filter {

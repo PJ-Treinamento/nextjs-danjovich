@@ -1,4 +1,4 @@
-import React, { FormEvent, useContext, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import Link from 'next/link';
 
 import { useForm } from 'react-hook-form';
@@ -7,7 +7,7 @@ import Input from '../../components/Input';
 import Logo from '../../components/Logo';
 import AuthContext from 'contexts/auth';
 
-import { ErrorMessage, FrameDiv, NonSubmitStyledButton, PageDiv, StyledButton, StyledForm } from './styles';
+import { ErrorMessage, FrameDiv, PageDiv, StyledButton, StyledForm } from './styles';
 
 const LoginComponent = () => {
     const { register, handleSubmit } = useForm();
@@ -19,12 +19,10 @@ const LoginComponent = () => {
     const [loginError, setLoginError] = useState(false);
 
     const handleLogIn = () => {
-        try {
-            logIn(email, password);
-        } catch (error) {
+        logIn(email, password).catch((error) => {
             console.log(error);
             setLoginError(true);
-        }
+        });
     }
 
     return (

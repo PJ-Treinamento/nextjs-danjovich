@@ -1,4 +1,4 @@
-import { createGlobalStyle } from 'styled-components';
+import styled, { createGlobalStyle } from 'styled-components';
 
 export const GlobalStyles = createGlobalStyle`
     * {
@@ -34,5 +34,16 @@ export const GlobalStyles = createGlobalStyle`
 
 	#root {
 		width: 100vw;
+	}
+`
+
+export const LoadingDiv = styled.div`
+	height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+
+	.MuiCircularProgress-colorPrimary {
+		color: ${({ theme }) => theme.colors.blue} !important;
 	}
 `
